@@ -1,12 +1,12 @@
 Package: bams
 Version: @VERSION@
 Architecture: armhf
-Maintainer: BAMS <noreply@github.com>
+Maintainer: faux01 <12839998+faux01@users.noreply.github.com>
 Installed-Size: @SIZE@
 Depends: ffmpeg, systemd, passwd
 Section: video
 Priority: optional
-Homepage: https://github.com/TomSomerville/bams
+Homepage: https://github.com/faux01/bams
 Description: BAMS - Bad Ass Media Server
  A self-hosted, Netflix/Plex-style server for your own movies, TV shows and
  music. Point it at your folders; it identifies the media (TMDB, MusicBrainz),

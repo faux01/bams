@@ -53,7 +53,8 @@ def version() -> str:
     if VERSION_OVERRIDE:
         return VERSION_OVERRIDE
     text = (ROOT / "server" / "bams" / "config.py").read_text(encoding="utf-8")
-    return re.search(r'^VERSION = "([^"]+)"', text, re.M).group(1)
+    ver = re.search(r'^VERSION = "([^"]+)"', text, re.M).group(1)
+    return f"{ver}+osmc{re.search(r'^OSMC_REVISION = (\d+)', text, re.M).group(1)}"  # osmc fork
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> None:

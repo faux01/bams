@@ -141,4 +141,23 @@ def test_tidy_keeps_only_newer_downloads(tmp_path, monkeypatch):
 
 def test_versions_compare_as_numbers():
     assert updates.parse_version("v0.10.0") > updates.parse_version("0.9.9")
-    assert updates.parse_version("0.5.3") == (0, 5, 3)
+    assert updates.parse_version("0.5.3") == (0, 5, 3, 0)
+
+
+def test_osmc_revisions_order_like_apt():
+    """osmc fork: 0.18.1 < 0.18.1+osmc1 < 0.18.1+osmc2 < 0.18.10+osmc1 < 0.19.0, as dpkg orders them."""
+    order = ["0.18.1", "v0.18.1+osmc1", "0.18.1+osmc2", "0.18.10+osmc1", "0.19.0"]
+    assert sorted(order, key=updates.parse_version) == order
+    assert VERSION.endswith("+osmc" + str(updates.parse_version(VERSION)[3]))
+
+
+def test_tidy_keeps_a_newer_osmc_revision(tmp_path, monkeypatch):
+    """osmc fork: a downloaded +osmc(N+1) of the same upstream version is newer, not leftover."""
+    monkeypatch.setattr(updates, "install_kind", lambda: "deb")
+    base, rev = VERSION.split("+osmc")
+    d = tmp_path / "updates"
+    d.mkdir()
+    (d / f"bams_{VERSION}_armhf.deb").write_bytes(b"x")
+    (d / f"bams_{base}+osmc{int(rev) + 1}_armhf.deb").write_bytes(b"x")
+    updates.tidy(d)
+    assert [f.name for f in d.iterdir()] == [f"bams_{base}+osmc{int(rev) + 1}_armhf.deb"]

@@ -97,3 +97,10 @@ class Paths:
         for p in (self.root, self.images, self.logs):
             p.mkdir(parents=True, exist_ok=True)
         return self
+
+
+# osmc fork: our build of upstream's VERSION (kept at the top, untouched, so upstream's version bumps merge
+# cleanly). Bump OSMC_REVISION for each fork release; back to 1 when upstream's VERSION changes. apt orders
+# 0.18.1 < 0.18.1+osmc1 < 0.18.1+osmc2 < 0.18.2. deploy/build.py reads both lines.
+OSMC_REVISION = 1
+VERSION = f"{VERSION}+osmc{OSMC_REVISION}"

@@ -49,8 +49,10 @@ _job: dict = {"state": "idle"}  # idle | downloading | ready | installing | erro
 
 
 def parse_version(v: str) -> tuple[int, ...]:
-    """'v0.5.3' -> (0, 5, 3)."""
-    return tuple(int(x) for x in re.findall(r"\d+", v)[:3])
+    """'v0.5.3' -> (0, 5, 3, 0). osmc fork: '0.5.3+osmc2' -> (0, 5, 3, 2), so our rebuilds of one upstream version
+    are newer than each other (and than upstream's own)."""
+    base, _, rev = v.partition("osmc")
+    return tuple(int(x) for x in re.findall(r"\d+", base)[:3]) + (int(rev) if rev.isdigit() else 0,)
 
 
 def install_kind() -> str:
@@ -228,7 +230,7 @@ def tidy(updates_dir: Path) -> None:
     if not updates_dir.is_dir():
         return
     for f in updates_dir.iterdir():
-        m = re.search(r"\d+\.\d+\.\d+", f.name)
+        m = re.search(r"\d+\.\d+\.\d+(\+osmc\d+)?", f.name)  # osmc fork: our revision counts too
         if f.is_file() and m and parse_version(m.group()) <= parse_version(VERSION):
             f.unlink(missing_ok=True)
 
