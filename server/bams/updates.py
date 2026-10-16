@@ -69,7 +69,7 @@ def _client() -> httpx.Client:
 def _asset_kind(name: str) -> str | None:
     if name.startswith("BAMS-Setup-") and name.endswith(".exe"):
         return "windows"
-    if name.startswith("bams_") and name.endswith("_all.deb"):
+    if name.startswith("bams_") and name.endswith(("_all.deb", "_armhf.deb")):  # osmc fork: our .deb is armhf
         return "deb"
     return None
 

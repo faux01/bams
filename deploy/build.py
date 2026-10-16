@@ -1,7 +1,7 @@
 """Build the BAMS installers.
 
     python deploy/build.py windows      -> dist/BAMS-Setup-<version>.exe   (run on Windows)
-    python deploy/build.py deb          -> dist/bams_<version>_all.deb     (runs anywhere)
+    python deploy/build.py deb          -> dist/bams_<version>_armhf.deb   (runs anywhere)
     python deploy/build.py all
     --skip-web                          use the existing web/dist and tv/dist instead of rebuilding them
 
@@ -13,8 +13,9 @@ What goes in (see deploy/README.md):
   Windows: Python (embeddable, pinned in pins.json), the locked Python packages (requirements.txt, hashes
            checked), BAMS + the built UI and TV page (theatre mode), WinSW (runs BAMS as a Windows service). FFmpeg is NOT bundled: the
            installer downloads the pinned build from its publisher and checks its SHA-256.
-  .deb:    BAMS + the built UI and TV page, a wheelhouse of the locked packages for Python 3.11-3.14 on x86_64 and
-           aarch64 (installed into a venv by postinst, offline), the systemd unit. apt pulls Python and FFmpeg.
+  .deb:    (osmc fork: 32-bit ARM, for OSMC on Debian 11) BAMS + the built UI and TV page, a standalone Python 3.11
+           (pins.json python_linux_armhf) in /opt/bams/python, a wheelhouse of the locked packages for it (installed
+           into a venv by postinst, offline), the systemd unit. apt pulls FFmpeg.
 """
 
 from __future__ import annotations
@@ -281,6 +282,26 @@ class _Tar:
             if p.is_file():
                 self.add(f"{dest}/{p.relative_to(src).as_posix()}", p.read_bytes())
 
+    def add_tarball(self, src: Path, top: str, dest: str) -> None:
+        """osmc fork: a .tar.gz's `top/` folder as `dest`, keeping executable bits and (relative) symlinks."""
+        with tarfile.open(src, "r:gz") as t:
+            for m in t:
+                if not m.name.startswith(top + "/"):
+                    sys.exit(f"error: {src.name}: {m.name} is outside {top}/")
+                path = dest + m.name[len(top):]
+                if m.isdir():
+                    self._dir(path)
+                elif m.isfile():
+                    self.add(path, t.extractfile(m).read(), m.mode & 0o755)
+                elif m.issym():
+                    self._dir(path.rsplit("/", 1)[0])
+                    ti = tarfile.TarInfo("./" + path)
+                    ti.type, ti.linkname, ti.mode, ti.mtime = tarfile.SYMTYPE, m.linkname, 0o777, self.mtime
+                    ti.uname, ti.gname = "root", "root"
+                    self.tar.addfile(ti)
+                else:
+                    sys.exit(f"error: {src.name}: {m.name} isn't a file, folder or symlink")
+
     def gz(self) -> bytes:
         self.tar.close()
         return gzip.compress(self.buf.getvalue(), 9, mtime=self.mtime)
@@ -303,7 +324,10 @@ def build_deb(web_dist: Path) -> Path:
     copy_app(stage / "lib", web_dist)
     wheels = linux_wheels()
 
+    py = PINS["python_linux_armhf"]
+
     data = _Tar()
+    data.add_tarball(fetch(py), "python", "opt/bams/python")
     data.add_tree(stage / "lib", "opt/bams/lib")
     for w in sorted(wheels.glob("*.whl")):
         data.add(f"opt/bams/wheels/{w.name}", w.read_bytes())
@@ -321,7 +345,8 @@ def build_deb(web_dist: Path) -> Path:
             meta = next(n for n in z.namelist() if n.endswith(".dist-info/METADATA"))
             z.extract(meta, with_meta)
     pkgs = _python_licences(sorted(with_meta.glob("*.dist-info")))
-    data.add("usr/share/doc/bams/THIRD-PARTY-NOTICES.txt", notices(pkgs, []).encode("utf-8"))
+    data.add("usr/share/doc/bams/THIRD-PARTY-NOTICES.txt",
+             notices(pkgs, [("Python (python-build-standalone)", py["version"], py["licence"])]).encode("utf-8"))
     md5sums = "\n".join(data.md5) + "\n"
     installed_kb = data.size // 1024
     data_gz = data.gz()
@@ -335,7 +360,7 @@ def build_deb(web_dist: Path) -> Path:
         ctl.add(script, (lin / "debian" / script).read_bytes().replace(b"\r\n", b"\n"), 0o755)
 
     DIST.mkdir(exist_ok=True)
-    out = DIST / f"bams_{ver}_all.deb"
+    out = DIST / f"bams_{ver}_armhf.deb"
     out.write_bytes(_ar([("debian-binary", b"2.0\n"), ("control.tar.gz", ctl.gz()), ("data.tar.gz", data_gz)]))
     print(f"   -> {out} ({out.stat().st_size / 1e6:.1f} MB)")
     return out

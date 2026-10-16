@@ -22,7 +22,7 @@ def release(version="99.0.0", digest=True, payload=PAYLOAD):
                           "digest": f"sha256:{sha}" if digest else None}
     return {"tag_name": f"v{version}", "name": f"BAMS {version}", "body": "What's new", "html_url": "https://x/rel",
             "published_at": "2026-10-09T00:00:00Z",
-            "assets": [asset(f"BAMS-Setup-{version}.exe"), asset(f"bams_{version}_all.deb"),
+            "assets": [asset(f"BAMS-Setup-{version}.exe"), asset(f"bams_{version}_armhf.deb"),
                        {"name": "SHA256SUMS.txt", "browser_download_url": DL + "SHA256SUMS.txt"},
                        {"name": "evil.exe", "browser_download_url": "https://elsewhere.example/BAMS-Setup-1.exe"}]}
 

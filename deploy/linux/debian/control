@@ -1,9 +1,9 @@
 Package: bams
 Version: @VERSION@
-Architecture: all
+Architecture: armhf
 Maintainer: BAMS <noreply@github.com>
 Installed-Size: @SIZE@
-Depends: python3 (>= 3.11), python3-venv, ffmpeg, systemd, passwd
+Depends: ffmpeg, systemd, passwd
 Section: video
 Priority: optional
 Homepage: https://github.com/TomSomerville/bams

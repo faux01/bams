@@ -20,8 +20,16 @@
     "size_mb": 96,
     "licence": "GPL-3.0 (downloaded by the user's installer, never redistributed by BAMS)"
   },
+  "python_linux_armhf": {
+    "_comment": "osmc fork: bundled into the .deb at /opt/bams/python (OSMC is Debian 11: Python 3.9, 32-bit userland). Standalone CPython from astral-sh/python-build-standalone; its top folder is python/.",
+    "version": "3.11.17",
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/cpython-3.11.17%2B20261013-armv7-unknown-linux-gnueabihf-install_only_stripped.tar.gz",
+    "sha256": "8914a6282b37b4a5dfe8f652b905d7dd9fd735cc6570de39859d7d0da734f69b",
+    "licence": "PSF-2.0"
+  },
   "linux_wheels": {
-    "python": ["3.11", "3.12", "3.13", "3.14"],
-    "platforms": ["x86_64", "aarch64"]
+    "_comment": "osmc fork: only the bundled Python (python_linux_armhf) on 32-bit ARM.",
+    "python": ["3.11"],
+    "platforms": ["armv7l"]
   }
 }
