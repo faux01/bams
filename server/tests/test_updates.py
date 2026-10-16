@@ -70,6 +70,18 @@ def test_check_finds_a_newer_release(gh):
     assert not c.get("/api/update?refresh=true").json()["newer"]
 
 
+def test_upstream_releases_are_never_offered(gh, monkeypatch):
+    """osmc fork: a release whose files are on TomSomerville/bams can't be downloaded, even if the API returned it."""
+    state, c, _ = gh
+    monkeypatch.setattr(updates, "install_kind", lambda: "deb")
+    upstream = "https://github.com/TomSomerville/bams/releases/download/v99.0.0/"
+    for a in state["release"]["assets"]:
+        a["browser_download_url"] = a["browser_download_url"].replace(DL, upstream)
+    st = c.get("/api/update").json()
+    assert st["latest"]["assets"] == {} and not st["can_download"]
+    assert c.post("/api/update/download").status_code != 200
+
+
 def test_check_failure_is_reported_not_raised(gh):
     state, c, _ = gh
     state["status"] = 500

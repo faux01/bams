@@ -1,6 +1,6 @@
 """Updates: the newest BAMS release on GitHub, downloading it, and installing it (Settings -> About).
 
-Releases are published at github.com/TomSomerville/bams (public): each has BAMS-Setup-<v>.exe, bams_<v>_all.deb and
+Releases are published at github.com/faux01/bams (public; this fork's OSMC builds, never upstream's): each has a .deb and
 SHA256SUMS.txt. GitHub lists every asset's SHA-256 ("digest"); a download is checked against it (or against
 SHA256SUMS.txt) before anything runs it. How an update is installed depends on how this copy was installed:
 
@@ -31,7 +31,9 @@ from .config import VERSION
 
 log = logging.getLogger(__name__)
 
-REPO = "TomSomerville/bams"
+# osmc fork: only this fork's releases. Upstream's .deb needs Python 3.11 and 64-bit wheels, so on OSMC its
+# `apt install` leaves the package half-installed and blocks apt.
+REPO = "faux01/bams"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 DOWNLOAD_PREFIX = f"https://github.com/{REPO}/releases/download/"
 USER_AGENT = f"BAMS/{VERSION} ( https://github.com/{REPO} )"
