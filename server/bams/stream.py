@@ -695,6 +695,20 @@ def keyframes(path: Path, timeout: float = 900) -> list[float] | None:
     return times or None
 
 
+_seg_opts: dict[str, str] = {}  # osmc fork: ffmpeg path -> how it spells the HLS segment-options flag
+
+
+def _hls_segment_options_flag(exe: str) -> str:
+    """osmc fork: -hls_segment_options is FFmpeg 5.0's name for -hls_ts_options, which already reached fMP4
+    segments. Debian 11 (OSMC) ships FFmpeg 4.3, which knows only the old name and rejects the new one."""
+    if exe not in _seg_opts:
+        r = _run([exe, "-hide_banner", "-h", "muxer=hls"], timeout=15)
+        text = r.stdout.decode(errors="replace") if r else ""
+        old = "-hls_ts_options" in text and "-hls_segment_options" not in text
+        _seg_opts[exe] = "-hls_ts_options" if old else "-hls_segment_options"
+    return _seg_opts[exe]
+
+
 def hls_copy_cmd(path: Path, segment: int, seek: float, video_codec: str | None, out_dir: Path,
                  audio_index: int = 0, channels: int = 2, copy_audio: bool = False, ts: bool = False) -> list[str]:
     """The audio-only remux as HLS: video copied, audio -> AAC (or copied too: `copy_audio`, Dolby pass-through),
@@ -728,7 +742,7 @@ def hls_copy_cmd(path: Path, segment: int, seek: float, video_codec: str | None,
     # The init file name is bare and FFmpeg runs in out_dir (`spawn(cwd=)`): FFmpeg 6.1 and older put the
     # playlist's folder in front of it (an absolute name doubled the path: ENOENT), newer ones use the working dir.
     cmd += ["-hls_segment_type", "fmp4",
-            "-hls_segment_options", "movflags=+frag_discont", "-hls_fmp4_init_filename", f"init_{segment}.mp4",
+            _hls_segment_options_flag(exe), "movflags=+frag_discont", "-hls_fmp4_init_filename", f"init_{segment}.mp4",
             "-hls_list_size", "0", "-hls_flags", "temp_file",  # a segment appears under its name once complete
             "-start_number", str(segment), "-hls_segment_filename", str(out_dir / "%d.m4s"),
             str(out_dir / f"ffmpeg_{segment}.m3u8")]

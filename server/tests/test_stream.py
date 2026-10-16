@@ -127,6 +127,23 @@ def test_encoder_detection_platform_and_override(fake_ffmpeg, monkeypatch):
     assert stream.video_encoder() == "h264_vaapi"
 
 
+@pytest.mark.parametrize("help_lists, flag", [
+    (["-hls_ts_options"], "-hls_ts_options"),                              # FFmpeg 4.3 (Debian 11 / OSMC)
+    (["-hls_ts_options", "-hls_segment_options"], "-hls_segment_options"),  # 5.x: both, the new one wins
+    (["-hls_segment_options"], "-hls_segment_options"),                    # 7.x+
+    ([], "-hls_segment_options"),                                          # help didn't run: as upstream
+])
+def test_remux_fmp4_options_flag_follows_the_ffmpeg_version(monkeypatch, tmp_path, help_lists, flag):
+    """osmc fork: FFmpeg 4.3 rejects -hls_segment_options (5.0's name); its -hls_ts_options also reaches fMP4."""
+    help_text = "".join(f"  {o}    <dictionary> E......... options\n" for o in help_lists).encode()
+    monkeypatch.setattr(stream, "ffmpeg_path", lambda: "ffmpeg")
+    monkeypatch.setattr(stream, "_seg_opts", {})
+    monkeypatch.setattr(stream, "_run", lambda cmd, timeout: subprocess.CompletedProcess(cmd, 0, help_text, b""))
+    cmd = stream.hls_copy_cmd(tmp_path / "a.mkv", 0, 0, "H.264", tmp_path)
+    assert cmd[cmd.index(flag) + 1] == "movflags=+frag_discont"
+    assert ({"-hls_ts_options", "-hls_segment_options"} - {flag}).isdisjoint(cmd)
+
+
 def test_encoder_test_uses_the_real_options_and_vaapi_falls_back_to_constant_qp(monkeypatch):
     """Ubuntu's free Intel driver (owner's HD 630) takes h264_vaapi at a constant QP only: with a bitrate every
     conversion failed ("Driver does not support any RC mode"), while a test without one passed."""
@@ -427,6 +444,7 @@ def test_burn_in_and_gpu_filters(monkeypatch, tmp_path):
 
 def test_hls_copy_cmd(monkeypatch, tmp_path):
     monkeypatch.setattr(stream, "ffmpeg_path", lambda: "ffmpeg")
+    monkeypatch.setattr(stream, "_seg_opts", {"ffmpeg": "-hls_segment_options"})  # osmc fork: FFmpeg 5+, whatever's installed
     out = tmp_path / "data" / "transcode" / "s" / "0"
     cmd = stream.hls_copy_cmd(Path("a.mkv"), 40, 120.5, "HEVC", out, 1, 6)
     i = cmd.index("-i")
